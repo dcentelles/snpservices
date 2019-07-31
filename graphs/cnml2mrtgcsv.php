@@ -199,71 +199,74 @@ $time_start = microtime(true);
     $SNPversion = $_GET['version'];
 
 header("Content-Type: text/plain");
-
-// Opening CNML source
-$cnml = new DOMDocument;
-$cnml->preserveWhiteSpace = false;
-$cnml->Load('../data/guifi.cnml');
-$time_s = microtime(true);
-
-// Validate the graph server
-$xpath = new DOMXPath($cnml);
-$query = "//service[@id=".$SNPServer." and @type='SNPgraphs']";
-$entries = $xpath->evaluate($query);
-
-// print count($servers);
-if (count($entries) == 0) {
-  echo "You must provide a valid server id\n";
-  exit();
-}
-
 $arr = array();
-$time_x = microtime(true);
 
-// Query for zones with the given graph server
-$xpath = new DOMXPath($cnml);
-$query = "//zone[@graph_server=".$SNPServer."]";
-$entries = $xpath->query($query);
-foreach ($entries as $entry) {
-  zonewalk($entry,$SNPServer,$arr);
+foreach (glob("../data/cnml/*.cnml") as $cnmlfile) {
+	// Opening CNML source
+	$cnmlpath=$cnmlfile;
+	$cnml = new DOMDocument;
+	$cnml->preserveWhiteSpace = false;
+	$cnml->Load($cnmlpath);
+	$time_s = microtime(true);
+	
+	// Validate the graph server
+	$xpath = new DOMXPath($cnml);
+	$query = "//service[@id=".$SNPServer." and @type='SNPgraphs']";
+	$entries = $xpath->evaluate($query);
+	
+	// print count($servers);
+	if (count($entries) == 0) {
+	  echo "You must provide a valid server id\n";
+	  exit();
+	}
+	
+	$time_x = microtime(true);
+	
+	// Query for zones with the given graph server
+	$xpath = new DOMXPath($cnml);
+	$query = "//zone[@graph_server=".$SNPServer."]";
+	$entries = $xpath->query($query);
+	foreach ($entries as $entry) {
+	  zonewalk($entry,$SNPServer,$arr);
+	}
+	
+	// Query for nodes with the given graph server
+	$xpath = new DOMXPath($cnml);
+	$query = "//node[@graph_server=".$SNPServer."]";
+	$entries = $xpath->query($query);
+	foreach ($entries as $entry) {
+	  nodewalk($entry,$SNPServer,$arr);
+	}
+	
+	// Query for devices with the given graph server
+	$xpath = new DOMXPath($cnml);
+	$query = "//device[@graph_server=".$SNPServer."]";
+	$entries = $xpath->query($query);
+	foreach ($entries as $entry) {
+	  devicewalk($entry,$SNPServer,$arr);
+	}
+	
+	if (!empty($arr['linked'])) {
+	// Cleaning linked already filled
+	foreach ($arr['linked'] as $k=>$foo)
+	  if (isset($arr['device'][$k]))
+	    unset($arr['linked'][$k]);
+	
+	  // Query for linked devices
+	  $xpath = new DOMXPath($cnml);
+	  $linkid = implode(' or @id=',array_keys($arr['linked']));
+	  if (!empty($linkid)) {
+	    $query = '//device[@id='.$linkid.']';
+	    $entries = $xpath->query($query);
+	    if (!empty($entries)){
+	      foreach ($entries as $entry) {
+	        devicewalk($entry,$SNPServer,$arr,false);
+	      }
+	    }
+	  }
+	}
 }
-
-// Query for nodes with the given graph server
-$xpath = new DOMXPath($cnml);
-$query = "//node[@graph_server=".$SNPServer."]";
-$entries = $xpath->query($query);
-foreach ($entries as $entry) {
-  nodewalk($entry,$SNPServer,$arr);
-}
-
-// Query for devices with the given graph server
-$xpath = new DOMXPath($cnml);
-$query = "//device[@graph_server=".$SNPServer."]";
-$entries = $xpath->query($query);
-foreach ($entries as $entry) {
-  devicewalk($entry,$SNPServer,$arr);
-}
-
-if (!empty($arr['linked'])) {
-// Cleaning linked already filled
-foreach ($arr['linked'] as $k=>$foo)
-  if (isset($arr['device'][$k]))
-    unset($arr['linked'][$k]);
-
-  // Query for linked devices
-  $xpath = new DOMXPath($cnml);
-  $linkid = implode(' or @id=',array_keys($arr['linked']));
-  if (!empty($linkid)) {
-    $query = '//device[@id='.$linkid.']';
-    $entries = $xpath->query($query);
-    if (!empty($entries)){
-      foreach ($entries as $entry) {
-        devicewalk($entry,$SNPServer,$arr,false);
-      }
-    }
-  }
-}
-
+	
 // Going to dump the output
 if (!empty($arr['device'])) 
       foreach($arr['device'] as $id=>$foo) {

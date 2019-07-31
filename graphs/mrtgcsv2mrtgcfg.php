@@ -160,7 +160,7 @@ echo "Sleeping for ".$secs." seconds to avoid server peaks.\n";
 sleep($secs);
 print date('Y/m/d H:i:s')."\n";
 
-$hf = @fopen($MRTGConfigSource."&version=3","r") or die("Error reading MRTG csv input\n");
+$hf = @fopen($MRTGConfigSource."&version=2","r") or die("Error reading MRTG csv input\n");
 $af = @fopen('/tmp/mrtg.csv','w+');
 
 while (!feof($hf)) {
