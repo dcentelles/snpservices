@@ -16,16 +16,6 @@ else
 
 $an = explode(',',$nodes);
 
-// Opening CNML source
-$doc = new DOMDocument;
-$doc->preserveWhiteSpace = false;
-$doc->Load('../data/guifi.cnml');
-
-// building the xpath query for requested nodes
-$xpath = new DOMXPath($doc);
-$query = '//node[@id='.implode(' or @id=',$an).']';
-$entries = $xpath->query($query);
-
 // Creating output CNML document
 $docout = new DOMDocument('1.0');
 // we want a nice output
@@ -58,11 +48,21 @@ $cMap = $docout->createAttribute('Mapping');
 $cClass->appendChild($cMap);
 $cMap->appendChild($docout->createTextNode('yes')); 
 
+foreach (glob("../data/cnml/*.cnml") as $cnmlfile) {
+  // Opening CNML source
+  $doc = new DOMDocument;
+  $doc->preserveWhiteSpace = false;
+  $doc->Load($cnmlfile);
+  
+  // building the xpath query for requested nodes
+  $xpath = new DOMXPath($doc);
+  $query = '//node[@id='.implode(' or @id=',$an).']';
+  $entries = $xpath->query($query);
+  // iterate over the xpath result elements and add them to the output
+  foreach ($entries as $entry)
+    $root->appendChild($docout->importNode($entry, true));
+}
 
-
-// iterate over the xpath result elements and add them to the output
-foreach ($entries as $entry)
-  $root->appendChild($docout->importNode($entry, true));
   
 // Create output
 header('Content-type: application/xml; charset=utf-8');
